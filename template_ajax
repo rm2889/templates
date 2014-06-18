@@ -1,0 +1,61 @@
+function createNewPostForm() {
+  var newPostHTML = "<div id='newPost'><form id='addForm' action='/posts' method='post'>";
+  newPostHTML += "<p>Title: <input name='title' type='text'/></p>";
+  newPostHTML += "<p>Content: <input name='content' type='text'/></p>";
+  newPostHTML += "<p><input name='create!' type='submit'/></p></div>";
+  return newPostHTML;
+}
+
+
+$(document).ready(function() {
+  $('a[href$="posts/new"]').on("click", function(e) {
+    e.preventDefault();
+    var html = createNewPostForm();
+    $("#newPost").remove();
+    $("body").append(html);
+    $('#addForm').on('submit', function(e){
+      e.preventDefault();
+      var ajaxRequest = $.ajax({
+        url: '/posts',
+        type: 'POST',
+        data: $(this).serialize()
+      });
+
+      ajaxRequest.done(function(response){
+        console.log("hello");
+        var newHTML = "<p>Title: " + response.title + "</p><p>Content: " + response.content + "</p>";
+        $('#newPost').remove();
+        $('body').append(newHTML);
+      });
+
+      ajaxRequest.fail(function(response){
+        console.log(response);
+      });
+    });
+
+  });
+
+});
+
+# ########################################################################################
+
+post '/posts' do
+  @post = Post.new(title: params[:title], content: params[:content], student: current_student)
+  if request.xhr?
+    content_type :json
+    response_hash = {}
+    if @post.save
+      response_hash[:title]=@post.title
+      response_hash[:content]=@post.content
+      response_hash.to_json
+    else
+      422
+    end
+  else
+    if @post.save
+      redirect '/posts'
+    else
+      erb :"/posts/new"
+    end
+  end
+end
